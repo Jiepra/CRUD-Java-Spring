@@ -162,3 +162,22 @@ Ikuti langkah-langkah di bawah ini untuk menjalankan aplikasi di lingkungan peng
     ```bash
     mvn clean install -U
     ```
+### Menjalankan Aplikasi
+
+1.  **Dari IDE:**
+    Buka proyek di IDE (IntelliJ IDEA, VS Code). Jalankan kelas `TokoOnlineApplication.java` (klik kanan -> Run Main).
+2.  **Dari Terminal:**
+    Di root proyek, jalankan:
+    ```bash
+    mvn spring-boot:run
+    ```
+
+Setelah aplikasi berjalan, buka browser Anda dan akses: [http://localhost:8080/](http://localhost:8080/)
+
+Anda akan diarahkan ke halaman login.
+
+**Kredensial Login (Default):**
+* **Admin:** Username: `admin`, Password: `admin_password` (sesuai yang Anda hash)
+* **User:** Username: `user`, Password: `user_password` (sesuai yang Anda hash)
+
+---
