@@ -36,7 +36,7 @@ public class Product {
     // Konstruktor dengan semua field (opsional, tapi berguna)
     public Product(String name, String description, BigDecimal price, Integer stock) {
         this.name = name;
-        this.description = description = description;
+        this.description = description;
         this.price = price;
         this.stock = stock;
     }
