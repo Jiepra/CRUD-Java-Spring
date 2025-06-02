@@ -2,8 +2,7 @@ package com.toko.toko_online.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.security.config.Customizer;
-import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity; // Mungkin perlu import ini jika sebelumnya terhapus
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -23,34 +22,41 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
             .authorizeHttpRequests(authorize -> authorize
-                // Aturan Paling Longgar Dulu: Izinkan akses ke Halaman Login, Aset Statis, dan Root
-                // Pastikan /login ADA di sini
-                .requestMatchers("/login", "/css/**", "/js/**", "/img/**", "/vendor/**", "/").permitAll()
+                // Izinkan akses publik (tanpa login) ke:
+                // - Halaman login
+                // - Semua aset statis (CSS, JS, gambar, vendor)
+                // - Halaman utama (daftar produk)
+                // - API untuk GET semua produk (agar halaman utama bisa tampil)
+                .requestMatchers("/login.html", "/css/**", "/js/**", "/img/**", "/vendor/**", "/").permitAll()
+                .requestMatchers("/api/products").permitAll() // GET /api/products (read-only for all)
+                .requestMatchers("/api/products/user-info").permitAll()
 
-                // Aturan untuk API Produk (GET public, POST/PUT/DELETE ADMIN)
-                .requestMatchers("/api/products").permitAll() // GET all products
-                .requestMatchers("/api/products/**").hasRole("ADMIN") // POST, PUT, DELETE products
+                // Hanya ADMIN yang bisa:
+                // - Mengakses API produk untuk POST, PUT, DELETE
+                // - Mengakses halaman dashboard
+                // - Mengakses halaman tambah/edit produk
+                .requestMatchers("/api/products/**").hasRole("ADMIN") // Untuk API produk lainnya (POST, PUT, DELETE)
+                .requestMatchers("/dashboard.html").hasRole("ADMIN") // Halaman dashboard
+                .requestMatchers("/product-form.html").hasRole("ADMIN") // Halaman tambah/edit produk
 
-                // Aturan untuk Dashboard
-                .requestMatchers("/dashboard.html").hasRole("ADMIN")
-
-                // Semua permintaan lainnya harus diautentikasi
+                // Semua request lainnya (URL yang belum diizinkan secara spesifik) harus diautentikasi (membutuhkan login)
+                // Ini menangani akses ke resource yang tidak secara eksplisit diizinkan secara publik
                 .anyRequest().authenticated()
             )
             .formLogin(form -> form
-                .loginPage("/login") // Tetap arahkan ke URL /login
-                // .permitAll() <--- HAPUS ATAU KOMENTARI INI
-                .defaultSuccessUrl("/", true)
-                .failureUrl("/login?error=true")
+                .loginPage("/login.html") // Halaman login kustom
+                .loginProcessingUrl("/login") // URL yang memproses submit form login (POST)
+                .defaultSuccessUrl("/", true) // Redirect setelah login sukses ke halaman utama
+                .failureUrl("/login.html?error=true") // Halaman jika login gagal
             )
             .logout(logout -> logout
-                .logoutRequestMatcher(new AntPathRequestMatcher("/logout"))
-                .logoutSuccessUrl("/login?logout=true")
+                .logoutRequestMatcher(new AntPathRequestMatcher("/logout")) // URL untuk logout
+                .logoutSuccessUrl("/login.html?logout=true") // Redirect setelah logout sukses
                 .invalidateHttpSession(true)
-                .deleteCookies("JSESSIONID")
-                .permitAll()
+                .deleteCookies("JSESSIONID") // Hapus cookie sesi
+                .permitAll() // Izinkan semua akses ke proses logout
             )
-            .csrf(Customizer.withDefaults()); // Aktifkan CSRF (jika belum)
+            .csrf(csrf -> csrf.disable()); // Nonaktifkan CSRF untuk development
 
         return http.build();
     }

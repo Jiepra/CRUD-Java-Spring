@@ -1,11 +1,18 @@
 package com.toko.toko_online.controller;
 
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
-import java.util.Optional;
+import java.util.Map;
+import java.util.Optional; // Mungkin perlu juga
+import java.util.Set;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication; // Mungkin perlu juga
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -79,5 +86,43 @@ public class ProductController {
         } else {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND); // 404 Not Found
         }
+    }
+
+    @GetMapping("/user-info")
+    public ResponseEntity<Map<String, Object>> getUserInfo() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+        Map<String, Object> userInfo = new HashMap<>();
+        if (authentication != null && authentication.isAuthenticated() && !(authentication.getPrincipal() instanceof String && "anonymousUser".equals(authentication.getPrincipal()))) {
+            // Jika user sudah terotentikasi dan bukan anonymous
+            Object principal = authentication.getPrincipal();
+            String username;
+            Set<String> roles = new HashSet<>();
+
+            if (principal instanceof UserDetails) {
+                username = ((UserDetails) principal).getUsername();
+                ((UserDetails) principal).getAuthorities().forEach(authority -> roles.add(authority.getAuthority()));
+            } else {
+                username = principal.toString(); // Fallback jika bukan UserDetails
+                // Roles for non-UserDetails principal might be trickier to get directly.
+                // For simplicity, we'll assume UserDetails or default to basic roles.
+            }
+
+            userInfo.put("username", username);
+            userInfo.put("isAuthenticated", true);
+            userInfo.put("roles", roles); // Menambahkan peran pengguna
+
+            // Contoh untuk memeriksa peran di backend
+            boolean isAdmin = roles.contains("ROLE_ADMIN");
+            userInfo.put("isAdmin", isAdmin);
+
+        } else {
+            // Jika user belum login atau anonymous
+            userInfo.put("username", "Guest");
+            userInfo.put("isAuthenticated", false);
+            userInfo.put("roles", new HashSet<>());
+            userInfo.put("isAdmin", false);
+        }
+        return new ResponseEntity<>(userInfo, HttpStatus.OK);
     }
 }
